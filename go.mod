@@ -5,22 +5,22 @@ go 1.16
 require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20210715213245-6c3934b029d8
 	github.com/Microsoft/go-winio v0.5.0
-	github.com/Microsoft/hcsshim v0.9.0
+	github.com/Microsoft/hcsshim v0.9.1
 	github.com/containerd/aufs v1.0.0
 	github.com/containerd/btrfs v1.0.0
 	github.com/containerd/cgroups v1.0.2
 	github.com/containerd/console v1.0.3
-	github.com/containerd/containerd/api v0.0.0
+	github.com/containerd/containerd/api v1.6.0-beta.1
 	github.com/containerd/continuity v0.2.0
 	github.com/containerd/fifo v1.0.0
-	github.com/containerd/go-cni v1.0.2
+	github.com/containerd/go-cni v1.1.1-0.20211026134925-aa8bf14323a5
 	github.com/containerd/go-runc v1.0.0
 	github.com/containerd/imgcrypt v1.1.1
 	github.com/containerd/nri v0.1.0
-	github.com/containerd/ttrpc v1.0.2
+	github.com/containerd/ttrpc v1.1.0
 	github.com/containerd/typeurl v1.0.2
 	github.com/containerd/zfs v1.0.0
-	github.com/containernetworking/plugins v0.9.1
+	github.com/containernetworking/plugins v1.0.1
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c
@@ -38,9 +38,9 @@ require (
 	github.com/imdario/mergo v0.3.12
 	github.com/klauspost/compress v1.11.13
 	github.com/moby/locker v1.0.1
-	github.com/moby/sys/mountinfo v0.4.1
-	github.com/moby/sys/signal v0.5.1-0.20210723232958-8a51b5cc8879
-	github.com/moby/sys/symlink v0.1.0
+	github.com/moby/sys/mountinfo v0.5.0
+	github.com/moby/sys/signal v0.6.0
+	github.com/moby/sys/symlink v0.2.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20210819154149-5ad6f50d6283
 	github.com/opencontainers/runc v1.0.2
@@ -54,6 +54,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tchap/go-patricia v2.2.6+incompatible
 	github.com/urfave/cli v1.22.2
+	github.com/vishvananda/netlink v1.1.1-0.20210330154013-f5de75959ad5
 	go.etcd.io/bbolt v1.3.6
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.24.0
 	go.opentelemetry.io/otel v1.0.1
@@ -62,7 +63,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.0.1
 	golang.org/x/net v0.0.0-20210825183410-e898025ed96a
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210915083310-ed5796bab164
+	golang.org/x/sys v0.0.0-20211025201205-69cdffdb9359
 	google.golang.org/grpc v1.41.0
 	google.golang.org/protobuf v1.27.1
 	gotest.tools/v3 v3.0.3
@@ -71,7 +72,7 @@ require (
 	k8s.io/apiserver v0.22.0
 	k8s.io/client-go v0.22.0
 	k8s.io/component-base v0.22.0
-	k8s.io/cri-api v0.22.0
+	k8s.io/cri-api v0.23.0-alpha.4
 	k8s.io/klog/v2 v2.9.0
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
 )
