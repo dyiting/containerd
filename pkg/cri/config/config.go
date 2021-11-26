@@ -31,6 +31,10 @@ import (
 type Runtime struct {
 	// Type is the runtime type to use in containerd e.g. io.containerd.runtime.v1.linux
 	Type string `toml:"runtime_type" json:"runtimeType"`
+	// Path is an optional field that can be used to overwrite path to a shim runtime binary.
+	// When specified, containerd will ignore runtime name field when resolving shim location.
+	// Path must be abs.
+	Path string `toml:"runtime_path" json:"runtimePath"`
 	// Engine is the name of the runtime engine used by containerd.
 	// This only works for runtime type "io.containerd.runtime.v1.linux".
 	// DEPRECATED: use Options instead. Remove when shim v1 is deprecated.
@@ -282,6 +286,17 @@ type PluginConfig struct {
 	// of being placed under the hardcoded directory /var/run/netns. Changing this setting requires
 	// that all containers are deleted.
 	NetNSMountsUnderStateDir bool `toml:"netns_mounts_under_state_dir" json:"netnsMountsUnderStateDir"`
+	// EnableUnprivilegedPorts configures net.ipv4.ip_unprivileged_port_start=0
+	// for all containers which are not using host network
+	// and if it is not overwritten by PodSandboxConfig
+	// Note that currently default is set to disabled but target change it in future, see:
+	//   https://github.com/kubernetes/kubernetes/issues/102612
+	EnableUnprivilegedPorts bool `toml:"enable_unprivileged_ports" json:"enableUnprivilegedPorts"`
+	// EnableUnprivilegedICMP configures net.ipv4.ping_group_range="0 2147483647"
+	// for all containers which are not using host network, are not running in user namespace
+	// and if it is not overwritten by PodSandboxConfig
+	// Note that currently default is set to disabled but target change it in future together with EnableUnprivilegedPorts
+	EnableUnprivilegedICMP bool `toml:"enable_unprivileged_icmp" json:"enableUnprivilegedICMP"`
 }
 
 // X509KeyPairStreaming contains the x509 configuration for streaming

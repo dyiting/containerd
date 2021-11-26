@@ -40,9 +40,15 @@ import (
 
 // StartContainer starts the container.
 func (c *criService) StartContainer(ctx context.Context, r *runtime.StartContainerRequest) (retRes *runtime.StartContainerResponse, retErr error) {
+	start := time.Now()
 	cntr, err := c.containerStore.Get(r.GetContainerId())
 	if err != nil {
 		return nil, errors.Wrapf(err, "an error occurred when try to find container %q", r.GetContainerId())
+	}
+
+	info, err := cntr.Container.Info(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get container info")
 	}
 
 	id := cntr.ID
@@ -110,7 +116,15 @@ func (c *criService) StartContainer(ctx context.Context, r *runtime.StartContain
 		return nil, errors.Wrap(err, "failed to get container info")
 	}
 
+	ociRuntime, err := c.getSandboxRuntime(sandbox.Config, sandbox.Metadata.RuntimeHandler)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get sandbox runtime")
+	}
+
 	taskOpts := c.taskOpts(ctrInfo.Runtime.Name)
+	if ociRuntime.Path != "" {
+		taskOpts = append(taskOpts, containerd.WithRuntimePath(ociRuntime.Path))
+	}
 	task, err := container.NewTask(ctx, ioCreation, taskOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create containerd task")
@@ -161,6 +175,8 @@ func (c *criService) StartContainer(ctx context.Context, r *runtime.StartContain
 
 	// It handles the TaskExit event and update container state after this.
 	c.eventMonitor.startContainerExitMonitor(context.Background(), id, task.Pid(), exitCh)
+
+	containerStartTimer.WithValues(info.Runtime.Name).UpdateSince(start)
 
 	return &runtime.StartContainerResponse{}, nil
 }
