@@ -17,8 +17,37 @@
 package main
 
 import (
-	_ "github.com/containerd/containerd/diff/lcow"
-	_ "github.com/containerd/containerd/diff/windows"
-	_ "github.com/containerd/containerd/snapshots/lcow"
-	_ "github.com/containerd/containerd/snapshots/windows"
+	"fmt"
+	"log"
+	"os"
+
+	"golang.org/x/sys/windows"
 )
+
+func main() {
+	if len(os.Args) != 2 {
+		fmt.Printf("Usage: %s file_or_directory\n", os.Args[0])
+		os.Exit(1)
+	}
+
+	if _, err := os.Stat(os.Args[1]); err != nil {
+		log.Fatal(err)
+	}
+
+	secInfo, err := windows.GetNamedSecurityInfo(
+		os.Args[1], windows.SE_FILE_OBJECT,
+		windows.OWNER_SECURITY_INFORMATION|windows.DACL_SECURITY_INFORMATION)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	sid, _, err := secInfo.Owner()
+	if err != nil {
+		log.Fatal(err)
+	}
+	acct, _, _, err := sid.LookupAccount(".")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("%s:%s", acct, sid)
+}

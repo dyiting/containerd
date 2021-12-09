@@ -1,11 +1,19 @@
-# Workflow intended to periodically test containerd integration tests
+# Workflow intended to run containerd integration tests on Windows.
 
-name: Windows Periodic Tests
+name: Windows Integration Tests
 
 on:
-  schedule:
-  - cron: "0 1 * * *"
   workflow_dispatch:
+  workflow_call:
+    secrets:
+      AZURE_SUB_ID:
+        required: true
+      AZURE_CREDS:
+        required: true
+      GCP_PROJECT_ID:
+        required: true
+      GCP_SA_KEY:
+        required: true
 
 env:
   AZURE_DEFAULT_LOCATION: westeurope
@@ -18,7 +26,6 @@ env:
 
 jobs:
   winIntegration:
-    if: github.repository == 'containerd/containerd'
     strategy:
       matrix:
         win_ver: [ltsc2019, sac2004, ltsc2022]
@@ -68,7 +75,7 @@ jobs:
         uses: azure/CLI@v1
         with:
           inlinescript: |
-            az group create -n ${{ matrix.AZURE_RESOURCE_GROUP }} -l ${{ env.AZURE_DEFAULT_LOCATION }} --tags creationTimestamp=$(date +%Y-%m-%dT%T%z)
+            az group create -n ${{ matrix.AZURE_RESOURCE_GROUP }} -l ${{ env.AZURE_DEFAULT_LOCATION }} --tags creationTimestamp=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 
       - name: AZTestVMCreate
         uses: azure/CLI@v1
@@ -155,6 +162,7 @@ jobs:
              ./script/setup/install-cni-windows
              mkdir /c/tmp
              export TEST_IMAGE_LIST=c:/repolist.toml
+             export CONTAINERD_ROOT=/c/ProgramData/containerd/root
              make cri-integration | tee c:/Logs/cri-integration.log
            EOF
            ssh -i $HOME/.ssh/id_rsa ${{ env.SSH_OPTS }} azureuser@${{ env.VM_PUB_IP }} "sh.exe -c 'cat /c/Logs/cri-integration.log | go-junit-report.exe > c:/Logs/junit_01.xml' "
