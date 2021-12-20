@@ -450,6 +450,7 @@ func WithResources(resources *runtime.LinuxContainerResources, tolerateMissingHu
 			q         = resources.GetCpuQuota()
 			shares    = uint64(resources.GetCpuShares())
 			limit     = resources.GetMemoryLimitInBytes()
+			swapLimit = resources.GetMemorySwapLimitInBytes()
 			hugepages = resources.GetHugepageLimits()
 		)
 
@@ -471,6 +472,10 @@ func WithResources(resources *runtime.LinuxContainerResources, tolerateMissingHu
 		if limit != 0 {
 			s.Linux.Resources.Memory.Limit = &limit
 		}
+		if swapLimit != 0 {
+			s.Linux.Resources.Memory.Swap = &swapLimit
+		}
+
 		if !disableHugetlbController {
 			if isHugetlbControllerPresent() {
 				for _, limit := range hugepages {
@@ -481,7 +486,7 @@ func WithResources(resources *runtime.LinuxContainerResources, tolerateMissingHu
 				}
 			} else {
 				if !tolerateMissingHugetlbController {
-					return errors.Errorf("huge pages limits are specified but hugetlb cgroup controller is missing. " +
+					return errors.New("huge pages limits are specified but hugetlb cgroup controller is missing. " +
 						"Please set tolerate_missing_hugetlb_controller to `true` to ignore this error")
 				}
 				logrus.Warn("hugetlb cgroup controller is absent. skipping huge pages limits")

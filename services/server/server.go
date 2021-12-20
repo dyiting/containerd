@@ -59,7 +59,16 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 )
+
+const (
+	boltOpenTimeout = "io.containerd.timeout.bolt.open"
+)
+
+func init() {
+	timeout.Set(boltOpenTimeout, 0) // set to 0 means to wait indefinitely for bolt.Open
+}
 
 // CreateTopLevelDirectories creates the top-level root and state directories.
 func CreateTopLevelDirectories(config *srvconfig.Config) error {
@@ -351,7 +360,7 @@ func (s *Server) Stop() {
 		instance, err := p.Instance()
 		if err != nil {
 			log.L.WithError(err).WithField("id", p.Registration.URI()).
-				Errorf("could not get plugin instance")
+				Error("could not get plugin instance")
 			continue
 		}
 		closer, ok := instance.(io.Closer)
@@ -360,7 +369,7 @@ func (s *Server) Stop() {
 		}
 		if err := closer.Close(); err != nil {
 			log.L.WithError(err).WithField("id", p.Registration.URI()).
-				Errorf("failed to close plugin")
+				Error("failed to close plugin")
 		}
 	}
 }
@@ -440,8 +449,21 @@ func LoadPlugins(ctx context.Context, config *srvconfig.Config) ([]*plugin.Regis
 
 			path := filepath.Join(ic.Root, "meta.db")
 			ic.Meta.Exports["path"] = path
-
-			db, err := bolt.Open(path, 0644, nil)
+			options := *bolt.DefaultOptions
+			options.Timeout = timeout.Get(boltOpenTimeout)
+			doneCh := make(chan struct{})
+			go func() {
+				t := time.NewTimer(10 * time.Second)
+				defer t.Stop()
+				select {
+				case <-t.C:
+					log.G(ctx).WithField("plugin", "bolt").Warn("waiting for response from boltdb open")
+				case <-doneCh:
+					return
+				}
+			}()
+			db, err := bolt.Open(path, 0644, &options)
+			close(doneCh)
 			if err != nil {
 				return nil, err
 			}
@@ -527,7 +549,7 @@ func (pc *proxyClients) getClient(address string) (*grpc.ClientConn, error) {
 		Backoff: backoffConfig,
 	}
 	gopts := []grpc.DialOption{
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithConnectParams(connParams),
 		grpc.WithContextDialer(dialer.ContextDialer),
 
