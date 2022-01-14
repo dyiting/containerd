@@ -48,7 +48,6 @@ import (
 	"github.com/containerd/typeurl"
 	ptypes "github.com/gogo/protobuf/types"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -63,11 +62,18 @@ const (
 	stateTimeout = "io.containerd.timeout.task.state"
 )
 
+// Config for the tasks service plugin
+type Config struct {
+	// RdtConfigFile specifies the path to RDT configuration file
+	RdtConfigFile string `toml:"rdt_config_file" json:"rdtConfigFile"`
+}
+
 func init() {
 	plugin.Register(&plugin.Registration{
 		Type:     plugin.ServicePlugin,
 		ID:       services.TasksService,
 		Requires: tasksServiceRequires,
+		Config:   &Config{},
 		InitFn:   initFunc,
 	})
 
@@ -75,6 +81,7 @@ func init() {
 }
 
 func initFunc(ic *plugin.InitContext) (interface{}, error) {
+	config := ic.Config.(*Config)
 	runtimes, err := loadV1Runtimes(ic)
 	if err != nil {
 		return nil, err
@@ -128,6 +135,11 @@ func initFunc(ic *plugin.InitContext) (interface{}, error) {
 	for _, t := range v2Tasks {
 		l.monitor.Monitor(t, nil)
 	}
+
+	if err := initRdt(config.RdtConfigFile); err != nil {
+		log.G(ic.Context).WithError(err).Errorf("RDT initialization failed")
+	}
+
 	return l, nil
 }
 
@@ -219,11 +231,11 @@ func (l *local) Create(ctx context.Context, r *api.CreateTaskRequest, _ ...grpc.
 	}
 	labels := map[string]string{"runtime": container.Runtime.Name}
 	if err := l.monitor.Monitor(c, labels); err != nil {
-		return nil, errors.Wrap(err, "monitor task")
+		return nil, fmt.Errorf("monitor task: %w", err)
 	}
 	pid, err := c.PID(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get task pid")
+		return nil, fmt.Errorf("failed to get task pid: %w", err)
 	}
 	return &api.CreateTaskResponse{
 		ContainerID: r.ContainerID,
@@ -451,7 +463,7 @@ func (l *local) ListPids(ctx context.Context, r *api.ListPidsRequest, _ ...grpc.
 		if p.Info != nil {
 			a, err := typeurl.MarshalAny(p.Info)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to marshal process %d info", p.Pid)
+				return nil, fmt.Errorf("failed to marshal process %d info: %w", p.Pid, err)
 			}
 			pInfo.Info = a
 		}

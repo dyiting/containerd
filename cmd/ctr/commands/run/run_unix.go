@@ -21,6 +21,7 @@ package run
 
 import (
 	gocontext "context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -39,7 +40,6 @@ import (
 	"github.com/containerd/containerd/runtime/v2/runc/options"
 	"github.com/containerd/containerd/snapshots"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -78,10 +78,6 @@ var platformRunFlags = []cli.Flag{
 		Name:  "cpu-shares",
 		Usage: "set the cpu shares",
 		Value: 1024,
-	},
-	cli.BoolFlag{
-		Name:  "cni",
-		Usage: "enable cni networking for the container",
 	},
 }
 
@@ -208,7 +204,7 @@ func NewContainer(ctx gocontext.Context, client *containerd.Client, context *cli
 		if context.Bool("net-host") {
 			hostname, err := os.Hostname()
 			if err != nil {
-				return nil, errors.Wrap(err, "get hostname")
+				return nil, fmt.Errorf("get hostname: %w", err)
 			}
 			opts = append(opts,
 				oci.WithHostNamespace(specs.NetworkNamespace),
@@ -328,6 +324,10 @@ func NewContainer(ctx gocontext.Context, client *containerd.Client, context *cli
 				return nil
 			})
 		}
+
+		if c := context.String("rdt-class"); c != "" {
+			opts = append(opts, oci.WithRdt(c, "", ""))
+		}
 	}
 
 	runtimeOpts, err := getRuntimeOptions(context)
@@ -417,15 +417,15 @@ func parseIDMapping(mapping string) (specs.LinuxIDMapping, error) {
 	}
 	cID, err := strconv.ParseUint(parts[0], 0, 32)
 	if err != nil {
-		return specs.LinuxIDMapping{}, errors.Wrapf(err, "invalid container id for user namespace remapping")
+		return specs.LinuxIDMapping{}, fmt.Errorf("invalid container id for user namespace remapping: %w", err)
 	}
 	hID, err := strconv.ParseUint(parts[1], 0, 32)
 	if err != nil {
-		return specs.LinuxIDMapping{}, errors.Wrapf(err, "invalid host id for user namespace remapping")
+		return specs.LinuxIDMapping{}, fmt.Errorf("invalid host id for user namespace remapping: %w", err)
 	}
 	size, err := strconv.ParseUint(parts[2], 0, 32)
 	if err != nil {
-		return specs.LinuxIDMapping{}, errors.Wrapf(err, "invalid size for user namespace remapping")
+		return specs.LinuxIDMapping{}, fmt.Errorf("invalid size for user namespace remapping: %w", err)
 	}
 	return specs.LinuxIDMapping{
 		ContainerID: uint32(cID),
@@ -448,4 +448,8 @@ func validNamespace(ns string) bool {
 	default:
 		return false
 	}
+}
+
+func getNetNSPath(_ gocontext.Context, task containerd.Task) (string, error) {
+	return fmt.Sprintf("/proc/%d/ns/net", task.Pid()), nil
 }

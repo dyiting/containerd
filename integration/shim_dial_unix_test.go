@@ -21,9 +21,11 @@ package integration
 
 import (
 	"context"
+	"errors"
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"testing"
@@ -32,7 +34,6 @@ import (
 	v1shimcli "github.com/containerd/containerd/runtime/v1/shim/client"
 	v2shimcli "github.com/containerd/containerd/runtime/v2/shim"
 	"github.com/containerd/ttrpc"
-	"github.com/pkg/errors"
 )
 
 const abstractSocketPrefix = "\x00"
@@ -45,8 +46,11 @@ const abstractSocketPrefix = "\x00"
 func TestFailFastWhenConnectShim(t *testing.T) {
 	t.Parallel()
 
-	t.Run("abstract-unix-socket-v1", testFailFastWhenConnectShim(true, v1shimcli.AnonDialer))
-	t.Run("abstract-unix-socket-v2", testFailFastWhenConnectShim(true, v2shimcli.AnonDialer))
+	// abstract Unix domain sockets are only for Linux.
+	if runtime.GOOS == "linux" {
+		t.Run("abstract-unix-socket-v1", testFailFastWhenConnectShim(true, v1shimcli.AnonDialer))
+		t.Run("abstract-unix-socket-v2", testFailFastWhenConnectShim(true, v2shimcli.AnonDialer))
+	}
 	t.Run("normal-unix-socket-v1", testFailFastWhenConnectShim(false, v1shimcli.AnonDialer))
 	t.Run("normal-unix-socket-v2", testFailFastWhenConnectShim(false, v2shimcli.AnonDialer))
 }
